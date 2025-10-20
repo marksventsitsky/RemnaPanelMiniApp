@@ -581,6 +581,11 @@ export function UserFormModal({
 							<NumberInput
 								placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
 								min={0}
+								max={999}
+								step={1}
+								allowDecimal={false}
+								allowNegative={false}
+								clampBehavior='strict'
 								leftSection={<IconDeviceDesktop size={16} />}
 								style={{
 									display:
