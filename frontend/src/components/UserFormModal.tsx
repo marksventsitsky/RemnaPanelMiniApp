@@ -568,23 +568,24 @@ export function UserFormModal({
 									</Text>
 								</Box>
 								<Checkbox
-									checked={form.values.hwidDeviceLimit === 0}
+									checked={form.values.hwidDeviceLimit > 0}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										form.setFieldValue(
 											'hwidDeviceLimit',
-											e.currentTarget.checked ? 0 : 5
+											e.currentTarget.checked ? 5 : 0
 										)
 									}}
 								/>
 							</Group>
 
-							<NumberInput
-								placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
-								min={0}
-								leftSection={<IconDeviceDesktop size={16} />}
-								disabled={form.values.hwidDeviceLimit === 0}
-								{...form.getInputProps('hwidDeviceLimit')}
-							/>
+							{form.values.hwidDeviceLimit > 0 && (
+								<NumberInput
+									placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
+									min={1}
+									leftSection={<IconDeviceDesktop size={16} />}
+									{...form.getInputProps('hwidDeviceLimit')}
+								/>
+							)}
 						</Box>
 					</Card>
 
