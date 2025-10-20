@@ -113,12 +113,8 @@ async def create_user(user: UserCreate, admin: dict = Depends(verify_admin)):
 async def update_user(user_identifier: str, user: UserUpdate, admin: dict = Depends(verify_admin)):
     """Update user"""
     try:
-        # First, get user to extract username (PATCH may require username, not UUID)
-        current_user = await remna_client.get_user(user_identifier)
-        username = current_user.get('username')
-        
-        if not username:
-            raise HTTPException(status_code=404, detail="User not found or username missing")
+        # user_identifier is UUID, we can use it directly
+        username = user_identifier
         
         update_data = user.model_dump(exclude_unset=True)
         print(f"🔍 Update data from frontend: {update_data}")
