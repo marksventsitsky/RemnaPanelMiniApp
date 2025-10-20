@@ -568,11 +568,11 @@ export function UserFormModal({
 									</Text>
 								</Box>
 								<Checkbox
-									checked={form.values.hwidDeviceLimit === null}
+									checked={form.values.hwidDeviceLimit === 0}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										form.setFieldValue(
 											'hwidDeviceLimit',
-											e.currentTarget.checked ? null : 5
+											e.currentTarget.checked ? 0 : 5
 										)
 									}}
 								/>
@@ -582,7 +582,7 @@ export function UserFormModal({
 								placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
 								min={0}
 								leftSection={<IconDeviceDesktop size={16} />}
-								disabled={form.values.hwidDeviceLimit === null}
+								disabled={form.values.hwidDeviceLimit === 0}
 								{...form.getInputProps('hwidDeviceLimit')}
 							/>
 						</Box>
