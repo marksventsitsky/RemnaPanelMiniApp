@@ -83,9 +83,16 @@ class RemnaClient:
         return result.get("response", result)
     
     async def update_user(self, username: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update user - username is passed in the body, not in URL"""
-        # Add username to the data payload as per Remna API requirements
-        user_data['username'] = username
+        """Update user - uuid is passed in the body, not username"""
+        # Get user by username to get UUID
+        user_info = await self.get_user(username)
+        uuid = user_info.get('uuid')
+        
+        if not uuid:
+            raise ValueError(f"User {username} not found or UUID missing")
+        
+        # Add uuid to the data payload as per Remna API requirements
+        user_data['uuid'] = uuid
         result = await self._request("PATCH", "/users", data=user_data)
         return result.get("response", result)
     

@@ -93,9 +93,8 @@ async def create_user(user: UserCreate, admin: dict = Depends(verify_admin)):
             if field in create_data and create_data[field] is None:
                 del create_data[field]
         
-        # Remove hwidDeviceLimit if null
-        if 'hwidDeviceLimit' in create_data and create_data['hwidDeviceLimit'] is None:
-            del create_data['hwidDeviceLimit']
+        # hwidDeviceLimit: 0 = disabled, >0 = enabled, null = not set
+        # Keep all values as they are meaningful
         
         # Handle activeInternalSquads - Remna API expects array of UUID strings
         if 'activeInternalSquads' in create_data:
@@ -145,9 +144,8 @@ async def update_user(user_identifier: str, user: UserUpdate, admin: dict = Depe
             if field in update_data and update_data[field] is None:
                 del update_data[field]
         
-        # Remove hwidDeviceLimit if null
-        if 'hwidDeviceLimit' in update_data and update_data['hwidDeviceLimit'] is None:
-            del update_data['hwidDeviceLimit']
+        # hwidDeviceLimit: 0 = disabled, >0 = enabled, null = not set
+        # Keep all values as they are meaningful
         
         # Handle activeInternalSquads - Remna API expects array of UUID strings
         if 'activeInternalSquads' in update_data:
