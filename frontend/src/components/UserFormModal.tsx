@@ -147,8 +147,7 @@ export function UserFormModal({
 				email: user.email || '',
 				description: user.description || '',
 				tag: user.tag || '',
-				hwidDeviceLimit:
-					user.hwidDeviceLimit !== undefined ? user.hwidDeviceLimit : 5,
+				hwidDeviceLimit: user.hwidDeviceLimit ?? 5,
 				activeInternalSquads: user.activeInternalSquads?.map(s => s.uuid) || [],
 				noTrafficLimit: user.trafficLimitBytes === 0,
 				noExpireLimit: !user.expireAt,
