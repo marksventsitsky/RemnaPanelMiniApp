@@ -187,8 +187,6 @@ export function UserFormModal({
 							? values.activeInternalSquads
 							: undefined,
 				}
-				console.log('🔍 Frontend updateData:', updateData)
-				console.log('🔍 hwidDeviceLimit value:', values.hwidDeviceLimit)
 				await usersApi.updateUser(user.uuid, updateData)
 				notifications.show({
 					title: 'Успешно',
@@ -585,7 +583,8 @@ export function UserFormModal({
 								min={0}
 								leftSection={<IconDeviceDesktop size={16} />}
 								style={{
-									display: (form.values.hwidDeviceLimit ?? 0) > 0 ? 'block' : 'none',
+									display:
+										(form.values.hwidDeviceLimit ?? 0) > 0 ? 'block' : 'none',
 								}}
 								{...form.getInputProps('hwidDeviceLimit')}
 							/>

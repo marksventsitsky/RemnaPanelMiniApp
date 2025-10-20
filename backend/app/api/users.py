@@ -117,7 +117,6 @@ async def update_user(user_identifier: str, user: UserUpdate, admin: dict = Depe
         username = user_identifier
         
         update_data = user.model_dump(exclude_unset=True)
-        print(f"🔍 Update data from frontend: {update_data}")
         
         # Remove username from update_data if present (it will be added by remna_client)
         if 'username' in update_data:
