@@ -181,7 +181,7 @@ export function UserFormModal({
 					email: values.email || null,
 					description: values.description || null,
 					tag: values.tag || null,
-					hwidDeviceLimit: values.hwidDeviceLimit || null,
+					hwidDeviceLimit: values.hwidDeviceLimit ?? null,
 					activeInternalSquads:
 						values.activeInternalSquads.length > 0
 							? values.activeInternalSquads
@@ -203,7 +203,7 @@ export function UserFormModal({
 					email: values.email || null,
 					description: values.description || null,
 					tag: values.tag || null,
-					hwidDeviceLimit: values.hwidDeviceLimit || null,
+					hwidDeviceLimit: values.hwidDeviceLimit ?? null,
 					activeInternalSquads:
 						values.activeInternalSquads.length > 0
 							? values.activeInternalSquads
