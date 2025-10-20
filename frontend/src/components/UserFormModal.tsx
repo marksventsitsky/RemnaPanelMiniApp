@@ -578,14 +578,13 @@ export function UserFormModal({
 								/>
 							</Group>
 
-							{form.values.hwidDeviceLimit > 0 && (
-								<NumberInput
-									placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
-									min={1}
-									leftSection={<IconDeviceDesktop size={16} />}
-									{...form.getInputProps('hwidDeviceLimit')}
-								/>
-							)}
+							<NumberInput
+								placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
+								min={0}
+								leftSection={<IconDeviceDesktop size={16} />}
+								style={{ display: form.values.hwidDeviceLimit > 0 ? 'block' : 'none' }}
+								{...form.getInputProps('hwidDeviceLimit')}
+							/>
 						</Box>
 					</Card>
 
