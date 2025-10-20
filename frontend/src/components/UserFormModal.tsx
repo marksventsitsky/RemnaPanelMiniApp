@@ -88,7 +88,7 @@ export function UserFormModal({
 			email: '',
 			description: '',
 			tag: '',
-			hwidDeviceLimit: null as number | null,
+			hwidDeviceLimit: 5 as number | null,
 			activeInternalSquads: [] as string[],
 			noTrafficLimit: false,
 			noExpireLimit: false,
@@ -147,7 +147,8 @@ export function UserFormModal({
 				email: user.email || '',
 				description: user.description || '',
 				tag: user.tag || '',
-				hwidDeviceLimit: user.hwidDeviceLimit || null,
+				hwidDeviceLimit:
+					user.hwidDeviceLimit !== undefined ? user.hwidDeviceLimit : 5,
 				activeInternalSquads: user.activeInternalSquads?.map(s => s.uuid) || [],
 				noTrafficLimit: user.trafficLimitBytes === 0,
 				noExpireLimit: !user.expireAt,
@@ -578,14 +579,13 @@ export function UserFormModal({
 								/>
 							</Group>
 
-							{form.values.hwidDeviceLimit !== null && (
-								<NumberInput
-									placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
-									min={0}
-									leftSection={<IconDeviceDesktop size={16} />}
-									{...form.getInputProps('hwidDeviceLimit')}
-								/>
-							)}
+							<NumberInput
+								placeholder='HWID_FALLBACK_DEVICE_LIMIT in use'
+								min={0}
+								leftSection={<IconDeviceDesktop size={16} />}
+								disabled={form.values.hwidDeviceLimit === null}
+								{...form.getInputProps('hwidDeviceLimit')}
+							/>
 						</Box>
 					</Card>
 
