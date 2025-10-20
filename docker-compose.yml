@@ -19,7 +19,6 @@ services:
       - ADMIN_TELEGRAM_IDS=${ADMIN_TELEGRAM_IDS}
       - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=${ENVIRONMENT:-production}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     networks:
       - remnawave-network
 

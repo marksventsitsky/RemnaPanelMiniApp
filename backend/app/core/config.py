@@ -17,14 +17,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ENVIRONMENT: str = "development"
     
-    # CORS Settings
-    ALLOWED_ORIGINS: str = "http://localhost:5173"
-    
-    @property
-    def allowed_origins_list(self) -> List[str]:
-        """Convert ALLOWED_ORIGINS string to list"""
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
-    
     @property
     def admin_ids_list(self) -> List[int]:
         """Convert ADMIN_TELEGRAM_IDS string to list of integers"""

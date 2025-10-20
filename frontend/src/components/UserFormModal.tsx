@@ -568,11 +568,11 @@ export function UserFormModal({
 									</Text>
 								</Box>
 								<Checkbox
-									checked={form.values.hwidDeviceLimit !== null}
+									checked={form.values.hwidDeviceLimit === null}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 										form.setFieldValue(
 											'hwidDeviceLimit',
-											e.currentTarget.checked ? 0 : null
+											e.currentTarget.checked ? null : 5
 										)
 									}}
 								/>
