@@ -8,8 +8,7 @@ dist/
 frontend/dist/
 frontend/node_modules/
 
-# Backend Python (legacy)
-backend/
+# Python (legacy - not used anymore)
 __pycache__/
 *.py[cod]
 *$py.class
