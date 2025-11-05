@@ -51,7 +51,7 @@ export function SettingsPage() {
         <Stack gap="xs">
           <Group justify="space-between">
             <Text size="sm">Версия:</Text>
-            <Text size="sm" fw={600}>1.0.0</Text>
+            <Text size="sm" fw={600}>2.0.0</Text>
           </Group>
           <Group justify="space-between">
             <Text size="sm">Тема:</Text>

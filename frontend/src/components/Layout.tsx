@@ -45,7 +45,7 @@ export function Layout({ children }: LayoutProps) {
       <AppShell.Header>
         <Group h="100%" px="md">
           <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="white" />
-          <Title order={3} c="white">Remnawave 2.1.19</Title>
+          <Title order={3} c="white">Remna Panel</Title>
         </Group>
       </AppShell.Header>
 
