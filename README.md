@@ -240,8 +240,8 @@ Frontend будет доступен на `http://localhost:5173`
 
 ```
 .
-├── src/                    # Backend TypeScript
-│   ├── server.ts          # Express app
+├── backend/               # Backend TypeScript
+│   ├── server.ts          # Express app + static serving
 │   ├── config.ts          # Environment configuration
 │   ├── auth.ts            # Telegram auth middleware
 │   ├── remnaClient.ts     # Remna API client
@@ -257,9 +257,9 @@ Frontend будет доступен на `http://localhost:5173`
 │   │   ├── services/
 │   │   └── types/
 │   └── package.json
-├── Dockerfile             # Multi-stage build
+├── Dockerfile             # Multi-stage Bun build
 ├── docker-compose.yml     # Single container deployment
-├── package.json           # Root package.json
+├── package.json           # Root package.json (Bun)
 └── tsconfig.json          # TypeScript config
 ```
 

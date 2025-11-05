@@ -26,10 +26,10 @@ COPY tsconfig.json ./
 RUN bun install --frozen-lockfile
 
 # Copy backend source
-COPY src/ ./src/
+COPY backend/ ./backend/
 
 # Build backend for production
-RUN bun build src/server.ts --outdir dist --target bun --minify
+RUN bun build backend/server.ts --outdir dist --target bun --minify
 
 # Stage 3: Production
 FROM oven/bun:1-alpine
@@ -44,7 +44,7 @@ COPY --from=backend-build /app/node_modules ./node_modules
 
 # Copy built backend
 COPY --from=backend-build /app/dist ./dist
-COPY --from=backend-build /app/src ./src
+COPY --from=backend-build /app/backend ./backend
 
 # Copy built frontend
 COPY --from=frontend-build /app/frontend/dist ./static
@@ -57,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD bun -e "fetch('http://localhost:8000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # Start server with Bun
-CMD ["bun", "run", "src/server.ts"]
+CMD ["bun", "run", "backend/server.ts"]
