@@ -1,42 +1,33 @@
 services:
-  remna-miniapp-backend:
+  remna-miniapp:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: remna-miniapp-backend
-    hostname: remna-miniapp-backend
+      args:
+        - VITE_API_URL=/api
+    container_name: remna-miniapp
+    hostname: remna-miniapp
     restart: unless-stopped
     expose:
       - '8000'
     env_file:
       - .env
     environment:
-      # Для production используйте http://remnawave:3000
-      # Для development используйте ваш Remna Panel URL
-      - REMNA_PANEL_URL=${REMNA_PANEL_URL:-https://panel.accessarc.work}
+      - REMNA_PANEL_URL=${REMNA_PANEL_URL:-https://panel.example.com}
       - REMNA_API_TOKEN=${REMNA_API_TOKEN}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - ADMIN_TELEGRAM_IDS=${ADMIN_TELEGRAM_IDS}
       - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=${ENVIRONMENT:-production}
+      - PORT=8000
     networks:
       - remnawave-network
-
-  remna-miniapp-frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=/api
-    container_name: remna-miniapp-frontend
-    hostname: remna-miniapp-frontend
-    restart: unless-stopped
-    ports:
-      - '8080:80'
-    depends_on:
-      - remna-miniapp-backend
-    networks:
-      - remnawave-network
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:8000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   remnawave-network:

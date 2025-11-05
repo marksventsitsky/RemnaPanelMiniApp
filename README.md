@@ -2,11 +2,27 @@
 
 Панель управления для Remna Panel, которая работает прямо в Telegram как Mini App.
 
+## 🚀 Технологии
+
+- **Runtime:** Bun 🔥 (быстрее Node.js в 4x раза!)
+- **Backend:** TypeScript + Express
+- **Frontend:** React + TypeScript + Vite + Mantine UI
+- **Deployment:** Docker (единый контейнер для фронта и бэка)
+- **Auth:** Telegram Mini App WebApp InitData
+
 ## Что это?
 
 Это веб-приложение, которое подключается к вашей панели Remna и позволяет управлять пользователями через Telegram бота. Вы можете создавать новых пользователей, смотреть статистику, редактировать настройки, управлять сквадами - все это прямо из Telegram.
 
 ## Развертывание на сервере с Remna Panel
+
+### Требования
+
+- Сервер с установленным Docker и Docker Compose
+- Установленная и работающая Remna Panel
+- Доступ к серверу по SSH
+- Домен/субдомен для Mini App (например, `miniapp.example.com`)
+- SSL сертификат для домена (обязательно для Telegram Mini App!)
 
 ### 1. Клонирование проекта
 
@@ -19,8 +35,8 @@ cd RemnaPanelMiniApp
 ### 2. Настройка переменных окружения
 
 ```bash
-# Переименуйте файл env
-mv .env.miniapp .env
+# Скопируйте пример
+cp .env.example .env
 
 # Отредактируйте переменные
 nano .env
@@ -29,216 +45,306 @@ nano .env
 Заполните следующие переменные:
 
 ```env
-# URL вашей панели Remna
+# URL вашей панели Remna (без /api)
 REMNA_PANEL_URL=https://panel.example.com
 
 # API токен из настроек Remna Panel (Settings -> API -> Create Token)
 REMNA_API_TOKEN=your_api_token_here
 
 # Токен бота от @BotFather
-TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
 
 # Ваш Telegram ID (узнать: https://t.me/userinfobot)
+# Можно указать несколько через запятую: 123456789,987654321
 ADMIN_TELEGRAM_IDS=123456789
 
-# Секретный ключ для JWT (сгенерировать: python3 scripts/generate_secret.py)
-SECRET_KEY=your_secret_key_here
-
-# Домен для Mini App
-MINIAPP_DOMAIN=miniapp.example.com
+# Секретный ключ (сгенерируйте случайную строку)
+SECRET_KEY=$(openssl rand -hex 32)
 
 # Режим работы
 ENVIRONMENT=production
+
+# Порт (по умолчанию 8000)
+PORT=8000
 ```
 
-### 3. Настройка SSL сертификатов
+### 3. Создание Docker сети (если не существует)
 
 ```bash
-# Создайте сертификаты для поддомена
-acme.sh --issue -d miniapp.example.com --nginx
-
-# Скопируйте сертификаты в nginx
-cp /root/.acme.sh/miniapp.example.com_ecc/fullchain.cer /opt/remnawave/nginx/ssl/miniapp_fullchain.pem
-cp /root/.acme.sh/miniapp.example.com_ecc/miniapp.example.com.key /opt/remnawave/nginx/ssl/miniapp_privkey.key
+docker network create remnawave-network
 ```
 
-### 4. Настройка Nginx
+### 4. Сборка и запуск
 
-Добавьте в `/opt/remnawave/nginx/nginx.conf` (в конец файла, перед закрывающей `}`):
+```bash
+# Сборка и запуск контейнера
+docker-compose up -d --build
+```
+
+Проверка логов:
+
+```bash
+docker-compose logs -f remna-miniapp
+```
+
+### 5. Настройка Nginx на сервере
+
+Создайте конфигурацию для вашего Mini App:
+
+```bash
+nano /opt/remnawave/nginx/conf.d/miniapp.conf
+```
+
+Добавьте:
 
 ```nginx
 upstream remna-miniapp {
-    server remna-miniapp-frontend:80;
+    server remna-miniapp:8000;
 }
 
 server {
     server_name miniapp.example.com;
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
 
+    # SSL Configuration
+    ssl_certificate /etc/nginx/ssl/miniapp_fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/miniapp_privkey.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Proxy to Mini App container
     location / {
-        proxy_http_version 1.1;
         proxy_pass http://remna-miniapp;
+        proxy_http_version 1.1;
         proxy_set_header Host $host;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Timeouts
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
     }
 
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_dhparam "/etc/nginx/ssl/dhparam.pem";
-    ssl_certificate "/etc/nginx/ssl/miniapp_fullchain.pem";
-    ssl_certificate_key "/etc/nginx/ssl/miniapp_privkey.key";
+    # Compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json application/xml+rss;
+}
 
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:MozSSL:10m;
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name miniapp.example.com;
+    return 301 https://$server_name$request_uri;
 }
 ```
 
-### 5. Запуск Mini App
+Перезапустите Nginx:
 
 ```bash
-# Запустите контейнеры
-docker-compose down
-docker-compose up -d --build
-
-# Перезагрузите Nginx
-docker exec remnawave-nginx nginx -s reload
+docker-compose -f /opt/remnawave/docker-compose.yml restart nginx
 ```
 
-### 6. Настройка Telegram бота
+### 6. Получение SSL сертификата
 
-1. Откройте [@BotFather](https://t.me/botfather)
-2. Найдите своего бота
-3. Выполните команду `/setmenubutton`
-4. Укажите URL: `https://miniapp.example.com`
-
-## Локальная разработка
+Если у вас еще нет SSL сертификата для субдомена:
 
 ```bash
-# Клонируйте проект
-git clone https://github.com/marksventsitsky/RemnaPanelMiniApp.git
-cd RemnaPanelMiniApp
+# Установите acme.sh (если не установлен)
+curl https://get.acme.sh | sh
+source ~/.bashrc
 
-# Настройте переменные
-cp .env.miniapp.example .env
-nano .env
+# Получите сертификат
+acme.sh --issue -d miniapp.example.com --webroot /var/www/html
 
-# Запустите
-docker-compose up -d
+# Установите сертификат в Nginx
+acme.sh --install-cert -d miniapp.example.com \
+  --key-file /opt/remnawave/nginx/ssl/miniapp_privkey.key \
+  --fullchain-file /opt/remnawave/nginx/ssl/miniapp_fullchain.pem \
+  --reloadcmd "docker-compose -f /opt/remnawave/docker-compose.yml restart nginx"
 ```
 
-Приложение будет доступно на `http://localhost:8080`
+### 7. Настройка Telegram бота
 
-## Возможности
+1. Откройте [@BotFather](https://t.me/BotFather) в Telegram
+2. Отправьте `/mybots` → выберите вашего бота
+3. Выберите `Bot Settings` → `Menu Button`
+4. Выберите `Edit Menu Button URL`
+5. Введите URL: `https://miniapp.example.com`
+6. Выберите `Edit Menu Button Text`
+7. Введите текст: `Открыть панель` (или любой другой)
 
-✅ **Управление пользователями:**
+### 8. Готово! 🎉
 
-- Создание новых пользователей с шаблонами трафика и времени
-- Редактирование существующих пользователей
-- Удаление пользователей с подтверждением
-- Просмотр детальной информации о пользователях
-
-✅ **Управление трафиком:**
-
-- Настройка лимитов трафика (включая безлимит)
-- Сброс использованного трафика
-- Отображение прогресса использования
-
-✅ **Управление группами:**
-
-- Назначение пользователей в сквады (группы)
-- Просмотр участников групп
-
-✅ **Дополнительные функции:**
-
-- Копирование ссылок на подписки
-- Настройка даты истечения подписки
-- Адаптивный дизайн для мобильных устройств
-- Безопасная авторизация через Telegram
-
-## Использование
-
-1. Откройте вашего бота в Telegram
-2. Нажмите кнопку меню (Menu Button)
-3. Управляйте пользователями прямо в Telegram
-
-**Важно:** Доступ к панели имеют только пользователи, чьи Telegram ID указаны в `ADMIN_TELEGRAM_IDS`.
-
-## Архитектура
-
-```
-┌─────────────────┐
-│  Telegram Bot   │  ← Пользователь открывает Mini App
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│   Mini App      │  ← React + Mantine UI (Frontend)
-│   Frontend      │    Проверяет Telegram initData
-└────────┬────────┘
-         │ API calls
-┌────────▼────────┐
-│   Backend API   │  ← FastAPI + Telegram auth
-│   (Mini App)    │    Валидирует admin access
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│  Remna Panel    │  ← Ваша основная панель
-│      API        │    Обрабатывает запросы
-└─────────────────┘
-```
+Теперь откройте вашего бота в Telegram и нажмите кнопку меню - откроется ваша панель управления!
 
 ## Обновление
 
 ```bash
 cd /opt/remnawave/RemnaPanelMiniApp
-git pull
+
+# Остановить контейнер
 docker-compose down
+
+# Обновить код
+git pull
+
+# Пересобрать и запустить
 docker-compose up -d --build
-docker exec remnawave-nginx nginx -s reload
 ```
 
-## Требования
+## Локальная разработка
 
-- **Сервер с Docker и Docker Compose**
-- **Работающая панель Remna** с API доступом
-- **Telegram бот** (созданный через @BotFather)
-- **Nginx с SSL** (для production)
-- **Домен** для Mini App (например, `miniapp.yourdomain.com`)
+### Требования
 
-## Устранение неполадок
+- Bun >= 1.0.0 ([Установка](https://bun.sh))
 
-### Ошибка "Access denied"
+### Установка
 
-- Проверьте, что ваш Telegram ID указан в `ADMIN_TELEGRAM_IDS`
-- Убедитесь, что открываете приложение через Telegram бота
+```bash
+# Установите зависимости
+bun install
 
-### Ошибка "Invalid hash"
+# Скопируйте .env.example в .env и заполните
+cp .env.example .env
+nano .env
 
-- Проверьте, что `TELEGRAM_BOT_TOKEN` совпадает с токеном бота в @BotFather
-- Убедитесь, что URL Mini App настроен правильно в боте
+# Установите ENVIRONMENT=development для локальной разработки
+```
 
-### Ошибка 502 Bad Gateway
+### Запуск
 
-- Проверьте, что контейнеры запущены: `docker-compose ps`
-- Проверьте логи: `docker-compose logs remna-miniapp-backend`
+```bash
+# Backend (TypeScript с hot reload)
+bun run dev
 
-### SSL ошибки
+# Frontend (в отдельном терминале)
+cd frontend
+bun install
+bun run dev
+```
 
-- Убедитесь, что сертификаты скопированы в правильную директорию
-- Проверьте права доступа к файлам сертификатов
+Backend будет доступен на `http://localhost:8000`  
+Frontend будет доступен на `http://localhost:5173`
+
+> **Почему Bun?** Bun - это современный JavaScript runtime, который в 4 раза быстрее Node.js! Он включает встроенный bundler, test runner и package manager.
+
+## Структура проекта
+
+```
+.
+├── src/                    # Backend TypeScript
+│   ├── server.ts          # Express app
+│   ├── config.ts          # Environment configuration
+│   ├── auth.ts            # Telegram auth middleware
+│   ├── remnaClient.ts     # Remna API client
+│   ├── types.ts           # Shared TypeScript types
+│   └── routes/
+│       ├── users.ts       # User management endpoints
+│       └── stats.ts       # Statistics endpoints
+├── frontend/              # React frontend
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── types/
+│   └── package.json
+├── Dockerfile             # Multi-stage build
+├── docker-compose.yml     # Single container deployment
+├── package.json           # Root package.json
+└── tsconfig.json          # TypeScript config
+```
+
+## Troubleshooting
+
+### Ошибка: "Access denied"
+
+- Проверьте, что ваш Telegram ID добавлен в `ADMIN_TELEGRAM_IDS`
+- Узнать свой ID: https://t.me/userinfobot
+- Можно указать несколько ID через запятую: `123456789,987654321`
+
+### Ошибка: "Failed to fetch stats"
+
+- Проверьте, что `REMNA_API_TOKEN` валиден
+- Проверьте, что `REMNA_PANEL_URL` доступен из контейнера
+- Проверьте логи: `docker-compose logs -f remna-miniapp`
+
+### Контейнер не запускается
+
+```bash
+# Проверьте логи
+docker-compose logs remna-miniapp
+
+# Проверьте что сеть существует
+docker network ls | grep remnawave
+
+# Создайте сеть если не существует
+docker network create remnawave-network
+```
+
+### ERR_SSL_UNRECOGNIZED_NAME_ALERT
+
+- Убедитесь, что SSL сертификат выпущен для правильного домена
+- Проверьте пути к сертификатам в Nginx конфигурации
+- Перезапустите Nginx: `docker-compose restart nginx`
+
+### Не открывается через Telegram
+
+- Убедитесь, что URL в Bot Menu Button правильный (https!)
+- Проверьте что домен доступен извне (не локальный IP)
+- Очистите кэш Telegram: Настройки → Данные и память → Очистить кэш
+
+### Telegram Mini App кэшируется
+
+После обновления кода, Telegram может показывать старую версию:
+
+1. **Зайдите в Настройки Telegram** → **Данные и память** → **Использование памяти**
+2. Нажмите **Очистить кэш** → выберите все → **Очистить**
+3. Или **полностью закройте Telegram** (свайпом вверх) и откройте заново
+
+## Возможности
+
+- ✅ **Управление пользователями**: создание, редактирование, удаление
+- ✅ **Статистика**: просмотр общей статистики системы
+- ✅ **Управление сквадами**: назначение пользователей в Internal Squads
+- ✅ **Управление трафиком**: установка лимитов, сброс счетчика
+- ✅ **Управление подписками**: установка срока действия, копирование ссылки
+- ✅ **HWID Device Limit**: ограничение количества устройств
+- ✅ **Адаптивный дизайн**: работает на всех устройствах
+- ✅ **Telegram аутентификация**: безопасный доступ через Telegram
 
 ## Безопасность
 
-- 🔒 **API токен Remna Panel** храните в секрете
-- 🔒 **Используйте HTTPS** в production
-- 🔒 **Указывайте только доверенных администраторов** в `ADMIN_TELEGRAM_IDS`
-- 🔒 **Регулярно обновляйте зависимости**
-- 🔒 **Telegram initData** проверяется на каждой запросе
+- ✅ Аутентификация через Telegram WebApp InitData
+- ✅ Проверка подписи данных от Telegram
+- ✅ Whitelist администраторов по Telegram ID
+- ✅ HTTPS обязателен для работы Telegram Mini App
+- ✅ API токен Remna Panel хранится в переменных окружения
 
-## Лицензия
+## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Pull requests are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Поддержка
+
+Если у вас возникли проблемы:
+
+1. Проверьте раздел [Troubleshooting](#troubleshooting)
+2. Посмотрите [Issues](https://github.com/marksventsitsky/RemnaPanelMiniApp/issues)
+3. Создайте новый Issue с описанием проблемы
+
+---
+
+Made with ❤️ for Remna Panel users

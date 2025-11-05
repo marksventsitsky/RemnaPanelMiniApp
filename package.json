@@ -1,0 +1,30 @@
+{
+  "name": "remna-panel-miniapp",
+  "version": "2.0.0",
+  "description": "Remna Panel Telegram Mini App - Unified TypeScript Backend + Frontend",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "build": "bun run build:frontend && bun run build:backend",
+    "build:frontend": "cd frontend && bun install && bun run build",
+    "build:backend": "bun build src/server.ts --outdir dist --target bun",
+    "start": "bun run dist/server.js",
+    "clean": "rm -rf dist frontend/dist"
+  },
+  "keywords": ["remna", "telegram", "miniapp", "vpn"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.10.6",
+    "bun-types": "^1.1.0"
+  }
+}
+

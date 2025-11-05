@@ -20,7 +20,7 @@ htmlcov/
 *.cover
 .hypothesis/
 
-# Node.js
+# Node.js / Bun
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -31,6 +31,7 @@ yarn-error.log*
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
+package-lock.json
 
 # Build outputs
 dist/
