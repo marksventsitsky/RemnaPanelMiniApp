@@ -8,8 +8,8 @@ services:
     container_name: remna-miniapp
     hostname: remna-miniapp
     restart: unless-stopped
-    expose:
-      - '8000'
+    ports:
+      - '8000:8000'  # Для локального тестирования. На проде убрать - будет через Nginx
     env_file:
       - .env
     environment:
