@@ -1,7 +1,7 @@
 .PHONY: build push deploy help
 
-# Docker Hub username (измените на свой!)
-DOCKER_USER ?= marksventsitsky
+# Docker Hub username  
+DOCKER_USER ?= markrk
 IMAGE_NAME = remna-miniapp
 TAG ?= latest
 

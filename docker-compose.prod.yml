@@ -1,6 +1,6 @@
 services:
   remna-miniapp:
-    image: marksventsitsky/remna-miniapp:latest  # Образ из Docker Hub
+    image: markrk/remna-miniapp:latest  # Образ из Docker Hub
     container_name: remna-miniapp
     hostname: remna-miniapp
     restart: unless-stopped
