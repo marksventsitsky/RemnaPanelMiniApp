@@ -23,8 +23,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // API routes
-app.use('/users', usersRouter);
-app.use('/stats', statsRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/stats', statsRouter);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
