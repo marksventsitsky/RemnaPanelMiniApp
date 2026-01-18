@@ -117,24 +117,6 @@ services:
       retries: 3
       start_period: 10s
 
-  remnawave-nginx:
-    image: nginx:1.28
-    container_name: remnawave-nginx
-    hostname: remnawave-nginx
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
-      - ./privkey.key:/etc/nginx/ssl/privkey.key:ro
-      - ./subdomain_fullchain.pem:/etc/nginx/ssl/subdomain_fullchain.pem:ro
-      - ./subdomain_privkey.key:/etc/nginx/ssl/subdomain_privkey.key:ro
-      - ./miniapp_fullchain.pem:/etc/nginx/ssl/miniapp_fullchain.pem:ro
-      - ./miniapp_privkey.key:/etc/nginx/ssl/miniapp_privkey.key:ro
-    restart: always
-    ports:
-      - '0.0.0.0:443:443'
-    networks:
-      - remnawave-network
-
 networks:
   remnawave-network:
     name: remnawave-network
@@ -158,10 +140,10 @@ docker network create remnawave-network
 cd /opt/remnawave/Remnaminiapp
 ```
 
-Соберите и запустите контейнеры:
+Соберите и запустите контейнер:
 
 ```bash
-docker-compose up -d --build
+docker-compose up -d
 ```
 
 Проверьте статус контейнеров:
@@ -175,9 +157,6 @@ docker-compose ps
 ```bash
 # Логи Mini App
 docker-compose logs -f remna-miniapp
-
-# Логи Nginx
-docker-compose logs -f remnawave-nginx
 ```
 
 ---
@@ -227,28 +206,42 @@ curl https://get.acme.sh | sh
 source ~/.bashrc
 ```
 
-После получения сертификата скопируйте файлы в директорию проекта:
-
-```bash
-cp /opt/remnawave/nginx/miniapp_privkey.key /opt/remnawave/Remnaminiapp/
-cp /opt/remnawave/nginx/miniapp_fullchain.pem /opt/remnawave/Remnaminiapp/
-```
-
-Убедитесь, что файлы имеют правильные права доступа:
-
-```bash
-chmod 644 /opt/remnawave/Remnaminiapp/miniapp_fullchain.pem
-chmod 600 /opt/remnawave/Remnaminiapp/miniapp_privkey.key
-```
+Сертификаты будут созданы в `/opt/remnawave/nginx/` и будут использоваться существующим nginx контейнером.
 
 ---
 
 ## 7. Настройка Nginx конфигурации
 
-Создайте файл `nginx.conf` в директории `/opt/remnawave/Remnaminiapp`:
+Nginx уже установлен в системе. Нужно добавить конфигурацию для Mini App в существующий nginx.
+
+Сначала посмотрите текущую конфигурацию:
 
 ```bash
-nano /opt/remnawave/Remnaminiapp/nginx.conf
+cat /opt/remnawave/nginx/nginx.conf
+cat /opt/remnawave/nginx/docker-compose.yml
+```
+
+### 7.1. Добавление volumes для сертификатов в docker-compose.yml
+
+Добавьте volumes для miniapp сертификатов в существующий `/opt/remnawave/nginx/docker-compose.yml`:
+
+```bash
+nano /opt/remnawave/nginx/docker-compose.yml
+```
+
+В секцию `volumes` сервиса nginx добавьте:
+
+```yaml
+      - ./miniapp_fullchain.pem:/etc/nginx/ssl/miniapp_fullchain.pem:ro
+      - ./miniapp_privkey.key:/etc/nginx/ssl/miniapp_privkey.key:ro
+```
+
+### 7.2. Добавление конфигурации в nginx.conf
+
+Откройте файл конфигурации nginx:
+
+```bash
+nano /opt/remnawave/nginx/nginx.conf
 ```
 
 Добавьте следующую конфигурацию (замените `miniapp.domain.com` на ваш реальный домен):
@@ -320,16 +313,17 @@ server {
 
 **Важно:** Замените `miniapp.domain.com` на ваш реальный домен в двух местах!
 
-После создания конфигурации перезапустите Nginx контейнер:
+После добавления конфигурации перезапустите Nginx контейнер:
 
 ```bash
-cd /opt/remnawave/Remnaminiapp
+cd /opt/remnawave/nginx
 docker-compose restart remnawave-nginx
 ```
 
 Проверьте конфигурацию Nginx:
 
 ```bash
+cd /opt/remnawave/nginx
 docker-compose exec remnawave-nginx nginx -t
 ```
 
@@ -392,14 +386,15 @@ Remna Panel Mini App предоставляет следующий функци�
 
 1. **Проверка контейнеров:**
    ```bash
+   cd /opt/remnawave/Remnaminiapp
    docker-compose ps
    ```
-   Оба контейнера должны быть в статусе `Up`
+   Контейнер `remna-miniapp` должен быть в статусе `Up`
 
 2. **Проверка логов:**
    ```bash
+   cd /opt/remnawave/Remnaminiapp
    docker-compose logs remna-miniapp
-   docker-compose logs remnawave-nginx
    ```
    Не должно быть критических ошибок
 
@@ -427,7 +422,7 @@ Remna Panel Mini App предоставляет следующий функци�
 ```bash
 cd /opt/remnawave/Remnaminiapp
 
-# Остановить контейнеры
+# Остановить контейнер
 docker-compose down
 
 # Обновить образ
@@ -444,6 +439,8 @@ docker-compose up -d
 ### Контейнер не запускается
 
 ```bash
+cd /opt/remnawave/Remnaminiapp
+
 # Проверьте логи
 docker-compose logs remna-miniapp
 
@@ -467,9 +464,10 @@ docker network ls | grep remnawave-network
 
 ### Nginx не проксирует запросы
 
-- Проверьте, что оба контейнера в одной сети `remnawave-network`
-- Проверьте конфигурацию nginx: `docker-compose exec remnawave-nginx nginx -t`
-- Убедитесь, что upstream указывает на правильный контейнер
+- Проверьте, что контейнер `remna-miniapp` в сети `remnawave-network`
+- Проверьте конфигурацию nginx: `cd /opt/remnawave/nginx && docker-compose exec remnawave-nginx nginx -t`
+- Убедитесь, что upstream указывает на правильный контейнер `remna-miniapp:8000`
+- Проверьте, что volumes для сертификатов добавлены в `/opt/remnawave/nginx/docker-compose.yml`
 
 ---
 
