@@ -18,7 +18,7 @@
 
 # 📘 Мануал по установке Remna Panel Mini App
 
-Полная инструкция по установке Remna Panel Mini App на сервер с настройкой Nginx через Docker Compose.
+Полная инструкция по установке Remna Panel Mini App на сервер с настройкой reverse proxy через Docker Compose.
 
 ## 📋 Содержание
 
@@ -28,7 +28,9 @@
 4. [Сборка и запуск](#4-сборка-и-запуск)
 5. [Настройка домена в панели](#5-настройка-домена-в-панели)
 6. [Получение SSL сертификата](#6-получение-ssl-сертификата)
-7. [Настройка Nginx конфигурации](#7-настройка-nginx-конфигурации)
+7. [Настройка reverse proxy](#7-настройка-reverse-proxy)
+   - [Nginx](#71-nginx)
+   - [Caddy](#72-caddy)
 8. [Функционал приложения](#8-функционал-приложения)
 
 ---
@@ -210,7 +212,14 @@ source ~/.bashrc
 
 ---
 
-## 7. Настройка Nginx конфигурации
+## 7. Настройка reverse proxy
+
+Выберите ваш reverse proxy и следуйте инструкциям:
+
+- [Nginx](#71-nginx)
+- [Caddy](#72-caddy)
+
+### 7.1. Nginx
 
 Nginx уже установлен в системе. Нужно добавить конфигурацию для Mini App в существующий nginx.
 
@@ -221,110 +230,185 @@ cat /opt/remnawave/nginx/nginx.conf
 cat /opt/remnawave/nginx/docker-compose.yml
 ```
 
-### 7.1. Добавление volumes для сертификатов в docker-compose.yml
+#### 7.1.1. Добавление upstream в nginx.conf
 
-Добавьте volumes для miniapp сертификатов в существующий `/opt/remnawave/nginx/docker-compose.yml`:
+Откройте файл конфигурации nginx:
 
 ```bash
-nano /opt/remnawave/nginx/docker-compose.yml
+cd /opt/remnawave/nginx && nano nginx.conf
 ```
 
-В секцию `volumes` сервиса nginx добавьте:
+**warning**
+
+Замените `MINIAPP_DOMAIN` на ваш домен для Mini App.
+
+**danger**
+
+Не заменяйте полностью существующую конфигурацию, только добавьте новый upstream блок.
+
+Добавьте новый upstream блок в начало файла (после других upstream блоков, если они есть):
+
+```nginx
+upstream remna-miniapp {
+    server remna-miniapp:8000;
+}
+```
+
+#### 7.1.2. Добавление server block в nginx.conf
+
+Теперь добавьте новый server block в конец файла конфигурации:
+
+**warning**
+
+Замените `MINIAPP_DOMAIN` на ваш домен для Mini App в двух местах.
+
+**danger**
+
+Не заменяйте полностью существующую конфигурацию, только добавьте новый server block в конец файла.
+
+```nginx
+server {
+    server_name MINIAPP_DOMAIN;
+
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+
+    location / {
+        proxy_http_version 1.1;
+        proxy_pass http://remna-miniapp;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # SSL Configuration (Mozilla Intermediate Guidelines)
+    ssl_protocols          TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305;
+
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:MozSSL:10m;
+    ssl_session_tickets    off;
+    ssl_certificate "/etc/nginx/ssl/miniapp_fullchain.pem";
+    ssl_certificate_key "/etc/nginx/ssl/miniapp_privkey.key";
+    ssl_trusted_certificate "/etc/nginx/ssl/miniapp_fullchain.pem";
+
+    ssl_stapling           on;
+    ssl_stapling_verify    on;
+    resolver               1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.220 valid=60s;
+    resolver_timeout       2s;
+
+    # Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_min_length 256;
+    gzip_types
+        application/atom+xml
+        application/geo+json
+        application/javascript
+        application/x-javascript
+        application/json
+        application/ld+json
+        application/manifest+json
+        application/rdf+xml
+        application/rss+xml
+        application/xhtml+xml
+        application/xml
+        font/eot
+        font/otf
+        font/ttf
+        image/svg+xml
+        text/css
+        text/javascript
+        text/plain
+        text/xml;
+}
+```
+
+#### 7.1.3. Добавление volumes для сертификатов в docker-compose.yml
+
+Теперь добавьте volumes для сертификатов в существующий `/opt/remnawave/nginx/docker-compose.yml`:
+
+```bash
+cd /opt/remnawave/nginx && nano docker-compose.yml
+```
+
+**danger**
+
+Не заменяйте полностью существующую конфигурацию, только добавьте новые volumes в секцию volumes сервиса nginx.
+
+В секцию `volumes` сервиса `remnawave-nginx` добавьте:
 
 ```yaml
       - ./miniapp_fullchain.pem:/etc/nginx/ssl/miniapp_fullchain.pem:ro
       - ./miniapp_privkey.key:/etc/nginx/ssl/miniapp_privkey.key:ro
 ```
 
-### 7.2. Добавление конфигурации в nginx.conf
-
-Откройте файл конфигурации nginx:
-
-```bash
-nano /opt/remnawave/nginx/nginx.conf
-```
-
-Добавьте следующую конфигурацию (замените `miniapp.domain.com` на ваш реальный домен):
-
-```nginx
-# Upstream для Mini App
-upstream remna-miniapp {
-    server remna-miniapp:8000;
-}
-
-# Mini App Server Block
-server {
-    server_name miniapp.domain.com;  # ЗАМЕНИТЕ на ваш домен
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-
-    # SSL сертификаты
-    ssl_certificate /etc/nginx/ssl/miniapp_fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/miniapp_privkey.key;
-    
-    # SSL настройки (Mozilla Intermediate)
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers off;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:MozSSL:10m;
-
-    # Proxy к Mini App контейнеру
-    location / {
-        proxy_pass http://remna-miniapp;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Таймауты
-        proxy_read_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_connect_timeout 60s;
-    }
-    
-    # Кэширование статики
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        proxy_pass http://remna-miniapp;
-        proxy_cache_valid 200 1y;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # Gzip
-    gzip on;
-    gzip_vary on;
-    gzip_proxied any;
-    gzip_comp_level 6;
-    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json application/xml+rss;
-}
-
-# HTTP -> HTTPS redirect
-server {
-    listen 80;
-    listen [::]:80;
-    server_name miniapp.domain.com;  # ЗАМЕНИТЕ на ваш домен
-    return 301 https://$server_name$request_uri;
-}
-```
-
-**Важно:** Замените `miniapp.domain.com` на ваш реальный домен в двух местах!
+#### 7.1.4. Перезапуск Nginx
 
 После добавления конфигурации перезапустите Nginx контейнер:
 
 ```bash
 cd /opt/remnawave/nginx
-docker-compose restart remnawave-nginx
+docker compose down && docker compose up -d && docker compose logs -f
 ```
 
-Проверьте конфигурацию Nginx:
+Проверьте конфигурацию Nginx перед перезапуском (опционально):
 
 ```bash
 cd /opt/remnawave/nginx
 docker-compose exec remnawave-nginx nginx -t
+```
+
+### 7.2. Caddy
+
+Caddy уже установлен в системе. Нужно добавить конфигурацию для Mini App в существующий Caddy.
+
+Сначала посмотрите текущую конфигурацию:
+
+```bash
+cat /opt/remnawave/caddy/Caddyfile
+```
+
+Откройте файл конфигурации Caddy:
+
+```bash
+cd /opt/remnawave/caddy && nano Caddyfile
+```
+
+**warning**
+
+Замените `MINIAPP_DOMAIN` на ваш домен для Mini App.
+
+**danger**
+
+Не заменяйте полностью существующую конфигурацию, только добавьте новый site block в конец файла.
+
+Добавьте новый site block в конец конфигурационного файла:
+
+```caddy
+https://MINIAPP_DOMAIN {
+        reverse_proxy * http://remna-miniapp:8000
+}
+```
+
+После добавления конфигурации перезапустите Caddy контейнер:
+
+```bash
+cd /opt/remnawave/caddy
+docker compose down && docker compose up -d && docker compose logs -f
 ```
 
 ---
