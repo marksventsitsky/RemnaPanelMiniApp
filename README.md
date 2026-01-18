@@ -4,7 +4,7 @@
 
 ## 🚀 Технологии
 
-- **Runtime:** Bun 🔥 (быстрее Node.js в 4x раза!)
+- **Runtime:** Bun
 - **Backend:** TypeScript + Express
 - **Frontend:** React + TypeScript + Vite + Mantine UI
 - **Deployment:** Docker (единый контейнер для фронта и бэка)
