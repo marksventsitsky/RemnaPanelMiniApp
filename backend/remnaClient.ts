@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { config } from './config';
-import { User, UserCreate, UserUpdate, InternalSquad } from './types';
+import { User, UserCreate, UserUpdate, InternalSquad, HwidDevice, HwidDevicesResponse } from './types';
 
 export class RemnaClient {
   private client: AxiosInstance;
@@ -178,6 +178,37 @@ export class RemnaClient {
     } catch (error) {
       return [];
     }
+  }
+
+  // HWID Devices Management
+  async getUserDevices(userUuid: string): Promise<HwidDevice[]> {
+    try {
+      const result = await this.request<HwidDevicesResponse | { response: HwidDevicesResponse }>({
+        method: 'GET',
+        url: '/hwid/devices',
+        params: {
+          userUuid
+        }
+      });
+      
+      if ((result as any).response?.devices) {
+        return (result as any).response.devices;
+      }
+      if ((result as any).devices) {
+        return (result as any).devices;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to get user devices:', error);
+      return [];
+    }
+  }
+
+  async deleteDevice(deviceUuid: string): Promise<any> {
+    return await this.request({
+      method: 'DELETE',
+      url: `/hwid/devices/${deviceUuid}`
+    });
   }
 }
 

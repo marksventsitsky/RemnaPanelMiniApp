@@ -5,6 +5,8 @@ import type {
 	UserCreate,
 	UsersListResponse,
 	UserUpdate,
+	HwidDevice,
+	HwidDevicesResponse,
 } from '../types'
 
 // API URL из переменной окружения (по умолчанию /api)
@@ -79,6 +81,20 @@ export const usersApi = {
 
 	revokeSubscription: async (identifier: string): Promise<void> => {
 		await api.post(`/users/${identifier}/revoke`)
+	},
+}
+
+// Devices API
+export const devicesApi = {
+	getUserDevices: async (userUuid: string): Promise<HwidDevice[]> => {
+		const { data } = await api.get<HwidDevicesResponse>('/devices', {
+			params: { userUuid },
+		})
+		return data.devices
+	},
+
+	deleteDevice: async (deviceUuid: string): Promise<void> => {
+		await api.delete(`/devices/${deviceUuid}`)
 	},
 }
 

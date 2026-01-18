@@ -104,3 +104,16 @@ export interface StatsResponse {
 	system: SystemStats | null
 	usage: UsageStats
 }
+
+export interface HwidDevice {
+	uuid: string
+	userUuid: string
+	hwid: string
+	userAgent?: string
+	createdAt: string
+	lastUsedAt?: string
+}
+
+export interface HwidDevicesResponse {
+	devices: HwidDevice[]
+}

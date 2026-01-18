@@ -31,6 +31,7 @@ import {
 	IconChevronUp,
 	IconClock,
 	IconCopy,
+	IconDeviceDesktop,
 	IconDots,
 	IconEdit,
 	IconPlus,
@@ -43,8 +44,8 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { UserFormModal } from '../components/UserFormModal'
-import { usersApi } from '../services/api'
-import type { User } from '../types'
+import { usersApi, devicesApi } from '../services/api'
+import type { User, HwidDevice } from '../types'
 import { formatBytes, formatDate } from '../utils/format'
 
 const ITEMS_PER_PAGE = 20
@@ -65,6 +66,49 @@ function UserCard({
 	onCopySubscription,
 }: UserCardProps) {
 	const [expanded, { toggle }] = useDisclosure(false)
+	const [devices, setDevices] = useState<HwidDevice[]>([])
+	const [loadingDevices, setLoadingDevices] = useState(false)
+
+	useEffect(() => {
+		if (expanded) {
+			loadDevices()
+		}
+	}, [expanded, user.uuid])
+
+	const loadDevices = async () => {
+		try {
+			setLoadingDevices(true)
+			const userDevices = await devicesApi.getUserDevices(user.uuid)
+			setDevices(userDevices)
+		} catch (err) {
+			console.error('Error loading devices:', err)
+			notifications.show({
+				title: 'Ошибка',
+				message: 'Не удалось загрузить устройства',
+				color: 'red',
+			})
+		} finally {
+			setLoadingDevices(false)
+		}
+	}
+
+	const handleDeleteDevice = async (deviceUuid: string) => {
+		try {
+			await devicesApi.deleteDevice(deviceUuid)
+			notifications.show({
+				title: 'Успешно',
+				message: 'Устройство удалено',
+				color: 'green',
+			})
+			loadDevices()
+		} catch (err) {
+			notifications.show({
+				title: 'Ошибка',
+				message: 'Не удалось удалить устройство',
+				color: 'red',
+			})
+		}
+	}
 
 	const getStatusIcon = (status: string) => {
 		switch (status) {
@@ -114,8 +158,8 @@ function UserCard({
 		new Date(user.onlineAt) > new Date(Date.now() - 5 * 60 * 1000)
 
 	const trafficUsagePercent =
-		user.trafficLimitBytes > 0
-			? (user.usedTrafficBytes / user.trafficLimitBytes) * 100
+		user.trafficLimitBytes > 0 && user.usedTrafficBytes != null
+			? Math.min((user.usedTrafficBytes / user.trafficLimitBytes) * 100, 100)
 			: 0
 
 	const copyToClipboard = (text: string) => {
@@ -248,7 +292,7 @@ function UserCard({
 						Использовано
 					</Text>
 					<Text fw={500} size='sm' c='white'>
-						{formatBytes(user.usedTrafficBytes)}
+						{formatBytes(user.usedTrafficBytes ?? 0)}
 					</Text>
 				</div>
 				<div>
@@ -257,7 +301,7 @@ function UserCard({
 					</Text>
 					<Text fw={500} size='sm' c='white'>
 						{user.trafficLimitBytes > 0
-							? formatBytes(user.trafficLimitBytes)
+							? formatBytes(user.trafficLimitBytes ?? 0)
 							: '∞'}
 					</Text>
 				</div>
@@ -374,6 +418,84 @@ function UserCard({
 							</Group>
 						</div>
 					)}
+
+					{/* Devices */}
+					<div>
+						<Group justify='space-between' align='center' mb={4}>
+							<Text size='xs' c='dimmed'>
+								Устройства
+								{user.hwidDeviceLimit !== null &&
+									user.hwidDeviceLimit > 0 &&
+									` (${devices.length}/${user.hwidDeviceLimit})`}
+							</Text>
+							{loadingDevices && <Loader size='xs' />}
+						</Group>
+						{loadingDevices ? (
+							<Center py='sm'>
+								<Loader size='sm' />
+							</Center>
+						) : devices.length === 0 ? (
+							<Text size='xs' c='dimmed' style={{ fontStyle: 'italic' }}>
+								Устройства не найдены
+							</Text>
+						) : (
+							<Stack gap='xs'>
+								{devices.map(device => (
+									<Card
+										key={device.uuid}
+										padding='xs'
+										style={{
+											backgroundColor: 'rgba(255, 255, 255, 0.03)',
+										}}
+									>
+										<Group justify='space-between' align='flex-start'>
+											<Group gap='xs' style={{ flex: 1, minWidth: 0 }}>
+												<IconDeviceDesktop size={14} />
+												<div style={{ flex: 1, minWidth: 0 }}>
+													<Text
+														size='xs'
+														fw={500}
+														c='white'
+														truncate
+														title={device.hwid}
+													>
+														{device.hwid.substring(0, 20)}
+														{device.hwid.length > 20 ? '...' : ''}
+													</Text>
+													{device.userAgent && (
+														<Text
+															size='xs'
+															c='dimmed'
+															truncate
+															title={device.userAgent}
+														>
+															{device.userAgent}
+														</Text>
+													)}
+													{device.lastUsedAt && (
+														<Text size='xs' c='dimmed'>
+															Последнее использование:{' '}
+															{formatDate(device.lastUsedAt).split(',')[0]}
+														</Text>
+													)}
+												</div>
+											</Group>
+											<Tooltip label='Удалить устройство'>
+												<ActionIcon
+													size='xs'
+													variant='subtle'
+													color='red'
+													onClick={() => handleDeleteDevice(device.uuid)}
+												>
+													<IconTrash size={12} />
+												</ActionIcon>
+											</Tooltip>
+										</Group>
+									</Card>
+								))}
+							</Stack>
+						)}
+					</div>
 				</Stack>
 			</Collapse>
 		</Card>

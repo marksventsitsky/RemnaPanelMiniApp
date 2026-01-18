@@ -90,3 +90,16 @@ export interface TelegramUser {
   is_dev?: boolean;
 }
 
+export interface HwidDevice {
+  uuid: string;
+  userUuid: string;
+  hwid: string;
+  userAgent?: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+export interface HwidDevicesResponse {
+  devices: HwidDevice[];
+}
+

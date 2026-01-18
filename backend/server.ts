@@ -4,6 +4,7 @@ import path from 'path';
 import { config } from './config';
 import usersRouter from './routes/users';
 import statsRouter from './routes/stats';
+import devicesRouter from './routes/devices';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // API routes
 app.use('/api/users', usersRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/devices', devicesRouter);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
