@@ -43,19 +43,47 @@ function CompactStatCard({
 }: CompactStatCardProps) {
 	return (
 		<Card
-			shadow='sm'
-			padding='sm'
-			radius='md'
-			style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}
+			shadow='md'
+			padding='md'
+			radius='lg'
+			style={{ 
+				backgroundColor: 'rgba(255, 255, 255, 0.03)',
+				border: '1px solid rgba(51, 154, 240, 0.1)',
+				transition: 'all 0.2s ease',
+				cursor: 'pointer',
+			}}
+			onMouseEnter={(e) => {
+				e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'
+				e.currentTarget.style.borderColor = color
+				e.currentTarget.style.transform = 'translateY(-2px)'
+				e.currentTarget.style.boxShadow = `0 4px 12px rgba(51, 154, 240, 0.2)`
+			}}
+			onMouseLeave={(e) => {
+				e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)'
+				e.currentTarget.style.borderColor = 'rgba(51, 154, 240, 0.1)'
+				e.currentTarget.style.transform = 'translateY(0)'
+				e.currentTarget.style.boxShadow = 'none'
+			}}
 		>
 			<Group justify='space-between' align='center'>
-				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-					<div style={{ color, opacity: 0.8, fontSize: '14px' }}>{icon}</div>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+					<div 
+						style={{ 
+							color, 
+							opacity: 0.9, 
+							fontSize: '16px',
+							padding: '8px',
+							borderRadius: '8px',
+							backgroundColor: `${color}15`,
+						}}
+					>
+						{icon}
+					</div>
 					<Text size='xs' c='dimmed' fw={500}>
 						{title}
 					</Text>
 				</div>
-				<Text fw={600} size='sm' c='white'>
+				<Text fw={700} size='md' c='white'>
 					{value}
 				</Text>
 			</Group>
@@ -113,9 +141,20 @@ export function DashboardPage() {
 	const onlineData = (systemData as any).onlineStats || {}
 
 	return (
-		<Stack gap='lg'>
+		<Stack gap='xl'>
 			<div>
-				<Title order={1} size='h2' c='white' mb={4}>
+				<Title 
+					order={1} 
+					size='h1' 
+					c='white' 
+					mb={8}
+					style={{
+						background: 'linear-gradient(135deg, #339af0 0%, #1c7ed6 100%)',
+						WebkitBackgroundClip: 'text',
+						WebkitTextFillColor: 'transparent',
+						backgroundClip: 'text',
+					}}
+				>
 					Краткая статистика
 				</Title>
 				<Text size='sm' c='dimmed'>
@@ -125,7 +164,7 @@ export function DashboardPage() {
 
 			{/* Remnawave Usage */}
 			<div>
-				<Title order={3} size='h4' c='white' mb='md'>
+				<Title order={3} size='h4' c='white' mb='lg' fw={600}>
 					Remnawave Usage
 				</Title>
 				<SimpleGrid cols={{ base: 2, xs: 4 }} spacing='sm'>
@@ -158,7 +197,7 @@ export function DashboardPage() {
 
 			{/* Система */}
 			<div>
-				<Title order={3} size='h4' c='white' mb='md'>
+				<Title order={3} size='h4' c='white' mb='lg' fw={600}>
 					Система
 				</Title>
 				<SimpleGrid cols={{ base: 2, xs: 3 }} spacing='sm'>
@@ -187,7 +226,7 @@ export function DashboardPage() {
 
 			{/* Онлайн */}
 			<div>
-				<Title order={3} size='h4' c='white' mb='md'>
+				<Title order={3} size='h4' c='white' mb='lg' fw={600}>
 					Онлайн
 				</Title>
 				<SimpleGrid cols={{ base: 2, xs: 4 }} spacing='sm'>
@@ -220,7 +259,7 @@ export function DashboardPage() {
 
 			{/* Пользователи */}
 			<div>
-				<Title order={3} size='h4' c='white' mb='md'>
+				<Title order={3} size='h4' c='white' mb='lg' fw={600}>
 					Пользователи
 				</Title>
 				<SimpleGrid cols={{ base: 2, xs: 5 }} spacing='sm'>
@@ -260,7 +299,7 @@ export function DashboardPage() {
 			{/* Дополнительная информация */}
 			{stats.system && (
 				<div>
-					<Title order={3} size='h4' c='white' mb='md'>
+					<Title order={3} size='h4' c='white' mb='lg' fw={600}>
 						Детали по процессам
 					</Title>
 					<SimpleGrid cols={{ base: 1, xs: 3 }} spacing='sm'>

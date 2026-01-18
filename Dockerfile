@@ -34,6 +34,11 @@ RUN bun build backend/server.ts --outdir dist --target bun --minify
 # Stage 3: Production
 FROM oven/bun:1-alpine
 
+# Metadata
+LABEL maintainer="Remna Panel Mini App"
+LABEL version="2.1.0"
+LABEL description="Remna Panel Telegram Mini App - Unified TypeScript Backend + Frontend"
+
 WORKDIR /app
 
 # Copy package.json for metadata

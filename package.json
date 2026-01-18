@@ -1,6 +1,6 @@
 {
   "name": "remna-panel-miniapp",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Remna Panel Telegram Mini App - Unified TypeScript Backend + Frontend",
   "main": "dist/server.js",
   "type": "module",

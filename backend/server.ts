@@ -35,7 +35,7 @@ app.get('/health', (req: Request, res: Response) => {
 app.get('/api', (req: Request, res: Response) => {
   res.json({
     message: 'Remna Panel Telegram Bot API',
-    version: '2.0.0',
+    version: '2.1.0',
     docs: 'https://github.com/marksventsitsky/RemnaPanelMiniApp'
   });
 });
