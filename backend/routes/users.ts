@@ -1,9 +1,30 @@
 import { Router, Request, Response } from 'express';
 import { remnaClient } from '../remnaClient';
 import { verifyAdmin } from '../auth';
-import { UserCreate, UserUpdate } from '../types';
+import { UserCreate, UserUpdate, User } from '../types';
 
 const router = Router();
+
+/**
+ * Transform Remna API user response to frontend format
+ * Maps userTraffic object to flat structure for backward compatibility
+ */
+function transformUser(apiUser: any): User {
+  const userTraffic = apiUser.userTraffic || {};
+  
+  // Destructure to exclude userTraffic and add transformed fields
+  const { userTraffic: _, ...rest } = apiUser;
+  
+  return {
+    ...rest,
+    // Extract traffic data from userTraffic object (new API format)
+    // or use direct fields (old format for backward compatibility)
+    usedTrafficBytes: userTraffic.usedTrafficBytes ?? apiUser.usedTrafficBytes ?? 0,
+    lifetimeUsedTrafficBytes: userTraffic.lifetimeUsedTrafficBytes ?? apiUser.lifetimeUsedTrafficBytes ?? 0,
+    onlineAt: userTraffic.onlineAt ?? apiUser.onlineAt ?? null,
+    firstConnectedAt: userTraffic.firstConnectedAt ?? apiUser.firstConnectedAt ?? null,
+  } as User;
+}
 
 // Get list of users
 router.get('/', verifyAdmin, async (req: Request, res: Response) => {
@@ -20,7 +41,8 @@ router.get('/', verifyAdmin, async (req: Request, res: Response) => {
       status
     });
     
-    let allUsers = result.users || [];
+    // Transform users from new API format (with userTraffic) to flat structure
+    let allUsers = (result.users || []).map(transformUser);
     
     // Filter users by search query on our side
     if (search) {
@@ -49,7 +71,9 @@ router.get('/', verifyAdmin, async (req: Request, res: Response) => {
 // Get user by username or UUID
 router.get('/:user_identifier', verifyAdmin, async (req: Request, res: Response) => {
   try {
-    const userData = await remnaClient.getUser(req.params.user_identifier);
+    const apiUserData = await remnaClient.getUser(req.params.user_identifier);
+    // Transform user from new API format to frontend format
+    const userData = transformUser(apiUserData);
     res.json(userData);
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -103,7 +127,9 @@ router.post('/', verifyAdmin, async (req: Request, res: Response) => {
     }
     
     console.log('🔍 Creating user with processed data:', createData);
-    const userData = await remnaClient.createUser(createData);
+    const apiUserData = await remnaClient.createUser(createData);
+    // Transform user from new API format to frontend format
+    const userData = transformUser(apiUserData);
     res.json(userData);
   } catch (error: any) {
     console.error('Failed to create user:', error);
@@ -153,7 +179,9 @@ router.patch('/:user_identifier', verifyAdmin, async (req: Request, res: Respons
     }
     
     console.log('🔍 Updating user with processed data:', updateData);
-    const userData = await remnaClient.updateUser(username, updateData);
+    const apiUserData = await remnaClient.updateUser(username, updateData);
+    // Transform user from new API format to frontend format
+    const userData = transformUser(apiUserData);
     res.json(userData);
   } catch (error: any) {
     console.error('Failed to update user:', error);

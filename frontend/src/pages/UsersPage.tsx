@@ -92,9 +92,9 @@ function UserCard({
 		}
 	}
 
-	const handleDeleteDevice = async (deviceUuid: string) => {
+	const handleDeleteDevice = async (deviceHwid: string) => {
 		try {
-			await devicesApi.deleteDevice(deviceUuid)
+			await devicesApi.deleteDevice(user.uuid, deviceHwid)
 			notifications.show({
 				title: 'Успешно',
 				message: 'Устройство удалено',
@@ -424,9 +424,12 @@ function UserCard({
 						<Group justify='space-between' align='center' mb={4}>
 							<Text size='xs' c='dimmed'>
 								Устройства
-								{user.hwidDeviceLimit !== null &&
-									user.hwidDeviceLimit > 0 &&
-									` (${devices.length}/${user.hwidDeviceLimit})`}
+								{(() => {
+									const limit = user.hwidDeviceLimit
+									return limit != null && limit > 0
+										? ` (${devices.length}/${limit})`
+										: ''
+								})()}
 							</Text>
 							{loadingDevices && <Loader size='xs' />}
 						</Group>
@@ -442,7 +445,7 @@ function UserCard({
 							<Stack gap='xs'>
 								{devices.map(device => (
 									<Card
-										key={device.uuid}
+										key={device.hwid}
 										padding='xs'
 										style={{
 											backgroundColor: 'rgba(255, 255, 255, 0.03)',
@@ -459,9 +462,17 @@ function UserCard({
 														truncate
 														title={device.hwid}
 													>
-														{device.hwid.substring(0, 20)}
-														{device.hwid.length > 20 ? '...' : ''}
+														{device.hwid.length > 30
+															? `${device.hwid.substring(0, 30)}...`
+															: device.hwid}
 													</Text>
+													{device.platform && (
+														<Text size='xs' c='dimmed'>
+															Платформа: {device.platform}
+															{device.osVersion && ` ${device.osVersion}`}
+															{device.deviceModel && ` • ${device.deviceModel}`}
+														</Text>
+													)}
 													{device.userAgent && (
 														<Text
 															size='xs'
@@ -472,10 +483,10 @@ function UserCard({
 															{device.userAgent}
 														</Text>
 													)}
-													{device.lastUsedAt && (
+													{device.updatedAt && (
 														<Text size='xs' c='dimmed'>
-															Последнее использование:{' '}
-															{formatDate(device.lastUsedAt).split(',')[0]}
+															Обновлено:{' '}
+															{formatDate(device.updatedAt).split(',')[0]}
 														</Text>
 													)}
 												</div>
@@ -485,7 +496,7 @@ function UserCard({
 													size='xs'
 													variant='subtle'
 													color='red'
-													onClick={() => handleDeleteDevice(device.uuid)}
+													onClick={() => handleDeleteDevice(device.hwid)}
 												>
 													<IconTrash size={12} />
 												</ActionIcon>

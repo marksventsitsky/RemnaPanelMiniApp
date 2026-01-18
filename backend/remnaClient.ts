@@ -183,19 +183,13 @@ export class RemnaClient {
   // HWID Devices Management
   async getUserDevices(userUuid: string): Promise<HwidDevice[]> {
     try {
-      const result = await this.request<HwidDevicesResponse | { response: HwidDevicesResponse }>({
+      const result = await this.request<{ response: HwidDevicesResponse }>({
         method: 'GET',
-        url: '/hwid/devices',
-        params: {
-          userUuid
-        }
+        url: `/hwid/devices/${userUuid}`
       });
       
-      if ((result as any).response?.devices) {
-        return (result as any).response.devices;
-      }
-      if ((result as any).devices) {
-        return (result as any).devices;
+      if (result.response?.devices) {
+        return result.response.devices;
       }
       return [];
     } catch (error) {
@@ -204,10 +198,15 @@ export class RemnaClient {
     }
   }
 
-  async deleteDevice(deviceUuid: string): Promise<any> {
+  async deleteDevice(userUuid: string, deviceHwid: string): Promise<any> {
+    // POST request to /api/hwid/devices/delete with body containing userUuid and hwid
     return await this.request({
-      method: 'DELETE',
-      url: `/hwid/devices/${deviceUuid}`
+      method: 'POST',
+      url: `/hwid/devices/delete`,
+      data: {
+        userUuid,
+        hwid: deviceHwid
+      }
     });
   }
 }

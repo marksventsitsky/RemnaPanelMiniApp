@@ -6,14 +6,9 @@ import { HwidDevice } from '../types';
 const router = Router();
 
 // Get devices for a user
-router.get('/', verifyAdmin, async (req: Request, res: Response) => {
+router.get('/:userUuid', verifyAdmin, async (req: Request, res: Response) => {
   try {
-    const userUuid = req.query.userUuid as string;
-    
-    if (!userUuid) {
-      res.status(400).json({ error: 'userUuid parameter is required' });
-      return;
-    }
+    const userUuid = req.params.userUuid;
     
     const devices = await remnaClient.getUserDevices(userUuid);
     res.json({ devices });
@@ -25,11 +20,17 @@ router.get('/', verifyAdmin, async (req: Request, res: Response) => {
   }
 });
 
-// Delete a device
-router.delete('/:deviceUuid', verifyAdmin, async (req: Request, res: Response) => {
+// Delete a device - requires userUuid and hwid in request body
+router.delete('/', verifyAdmin, async (req: Request, res: Response) => {
   try {
-    const deviceUuid = req.params.deviceUuid;
-    await remnaClient.deleteDevice(deviceUuid);
+    const { userUuid, hwid } = req.body;
+    
+    if (!userUuid || !hwid) {
+      res.status(400).json({ error: 'userUuid and hwid are required in request body' });
+      return;
+    }
+    
+    await remnaClient.deleteDevice(userUuid, hwid);
     res.json({ message: 'Device deleted successfully' });
   } catch (error: any) {
     console.error('Failed to delete device:', error);

@@ -1,14 +1,25 @@
 /**
  * Format bytes to human readable string
  */
-export const formatBytes = (bytes: number): string => {
-	if (bytes === 0) return '0 B'
+export const formatBytes = (bytes: number | null | undefined): string => {
+	// Handle null, undefined, NaN, or invalid numbers
+	if (bytes == null || isNaN(bytes) || !isFinite(bytes)) {
+		return '0 B'
+	}
+
+	// Ensure it's a number
+	const numBytes = Number(bytes)
+	if (numBytes === 0) {
+		return '0 B'
+	}
 
 	const k = 1024
 	const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-	const i = Math.floor(Math.log(bytes) / Math.log(k))
+	const i = Math.floor(Math.log(numBytes) / Math.log(k))
 
-	return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+	// Ensure index is valid
+	const sizeIndex = Math.min(i, sizes.length - 1)
+	return `${(numBytes / Math.pow(k, sizeIndex)).toFixed(2)} ${sizes[sizeIndex]}`
 }
 
 /**

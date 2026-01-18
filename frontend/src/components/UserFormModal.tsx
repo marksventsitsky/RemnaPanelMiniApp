@@ -4,9 +4,11 @@ import {
 	Box,
 	Button,
 	Card,
+	Center,
 	Checkbox,
 	Divider,
 	Group,
+	Loader,
 	Modal,
 	MultiSelect,
 	NumberInput,
@@ -29,12 +31,14 @@ import {
 	IconLink,
 	IconMail,
 	IconShield,
+	IconTrash,
 	IconUser,
 } from '@tabler/icons-react'
 import dayjs from 'dayjs'
 import { useEffect, useState } from 'react'
-import { statsApi, usersApi } from '../services/api'
-import type { User, UserCreate, UserUpdate } from '../types'
+import { statsApi, usersApi, devicesApi } from '../services/api'
+import type { User, UserCreate, UserUpdate, HwidDevice } from '../types'
+import { formatDate } from '../utils/format'
 
 interface UserFormModalProps {
 	opened: boolean
@@ -77,6 +81,8 @@ export function UserFormModal({
 	const isEdit = !!user
 	const [squads, setSquads] = useState<Squad[]>([])
 	const [loadingSquads, setLoadingSquads] = useState(false)
+	const [devices, setDevices] = useState<HwidDevice[]>([])
+	const [loadingDevices, setLoadingDevices] = useState(false)
 
 	const form = useForm({
 		initialValues: {
@@ -103,8 +109,11 @@ export function UserFormModal({
 	useEffect(() => {
 		if (opened) {
 			loadSquads()
+			if (isEdit && user) {
+				loadDevices()
+			}
 		}
-	}, [opened])
+	}, [opened, isEdit, user])
 
 	const loadSquads = async () => {
 		setLoadingSquads(true)
@@ -121,6 +130,43 @@ export function UserFormModal({
 			})
 		} finally {
 			setLoadingSquads(false)
+		}
+	}
+
+	const loadDevices = async () => {
+		if (!user?.uuid) return
+		try {
+			setLoadingDevices(true)
+			const userDevices = await devicesApi.getUserDevices(user.uuid)
+			setDevices(userDevices)
+		} catch (err) {
+			console.error('Error loading devices:', err)
+			notifications.show({
+				title: 'Ошибка',
+				message: 'Не удалось загрузить устройства',
+				color: 'red',
+			})
+		} finally {
+			setLoadingDevices(false)
+		}
+	}
+
+	const handleDeleteDevice = async (deviceHwid: string) => {
+		if (!user?.uuid) return
+		try {
+			await devicesApi.deleteDevice(user.uuid, deviceHwid)
+			notifications.show({
+				title: 'Успешно',
+				message: 'Устройство удалено',
+				color: 'green',
+			})
+			loadDevices()
+		} catch (err) {
+			notifications.show({
+				title: 'Ошибка',
+				message: 'Не удалось удалить устройство',
+				color: 'red',
+			})
 		}
 	}
 
@@ -595,6 +641,106 @@ export function UserFormModal({
 							/>
 						</Box>
 					</Card>
+
+					{/* Devices - только при редактировании */}
+					{isEdit && user && (
+						<Card withBorder padding='md'>
+							<Group gap='xs' mb='md'>
+								<IconDeviceDesktop size={18} />
+								<Text size='sm' fw={500}>
+									Устройства HWID
+								</Text>
+							</Group>
+
+							<Box>
+								<Group justify='space-between' align='center' mb='xs'>
+									<Text size='sm' fw={500}>
+										Устройства
+										{(() => {
+											const limit = user.hwidDeviceLimit
+											return limit != null && limit > 0
+												? ` (${devices.length}/${limit})`
+												: ''
+										})()}
+									</Text>
+									{loadingDevices && <Loader size='xs' />}
+								</Group>
+
+								{loadingDevices ? (
+									<Center py='md'>
+										<Loader size='sm' />
+									</Center>
+								) : devices.length === 0 ? (
+									<Text size='sm' c='dimmed' style={{ fontStyle: 'italic' }}>
+										Устройства не найдены
+									</Text>
+								) : (
+									<Stack gap='xs' mt='md'>
+										{devices.map(device => (
+											<Card
+												key={device.hwid}
+												padding='xs'
+												style={{
+													backgroundColor: 'rgba(0, 0, 0, 0.1)',
+												}}
+											>
+												<Group justify='space-between' align='flex-start'>
+													<Group gap='xs' style={{ flex: 1, minWidth: 0 }}>
+														<IconDeviceDesktop size={14} />
+														<div style={{ flex: 1, minWidth: 0 }}>
+															<Text
+																size='xs'
+																fw={500}
+																truncate
+																title={device.hwid}
+															>
+																{device.hwid.length > 30
+																	? `${device.hwid.substring(0, 30)}...`
+																	: device.hwid}
+															</Text>
+															{device.platform && (
+																<Text size='xs' c='dimmed'>
+																	Платформа: {device.platform}
+																	{device.osVersion && ` ${device.osVersion}`}
+																	{device.deviceModel && ` • ${device.deviceModel}`}
+																</Text>
+															)}
+															{device.userAgent && (
+																<Text
+																	size='xs'
+																	c='dimmed'
+																	truncate
+																	title={device.userAgent}
+																>
+																	{device.userAgent}
+																</Text>
+															)}
+															{device.updatedAt && (
+																<Text size='xs' c='dimmed'>
+																	Обновлено:{' '}
+																	{formatDate(device.updatedAt).split(',')[0]}
+																</Text>
+															)}
+														</div>
+													</Group>
+													<Tooltip label='Удалить устройство'>
+														<ActionIcon
+															size='xs'
+															variant='subtle'
+															color='red'
+															onClick={() => handleDeleteDevice(device.hwid)}
+														>
+															<IconTrash size={12} />
+														</ActionIcon>
+													</Tooltip>
+												</Group>
+											</Card>
+										))}
+									</Stack>
+								)}
+							</Box>
+						</Card>
+					)}
 
 					{/* Actions */}
 					<Group justify='flex-end' mt='xl' gap='sm'>

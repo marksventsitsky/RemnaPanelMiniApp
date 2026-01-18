@@ -106,14 +106,17 @@ export interface StatsResponse {
 }
 
 export interface HwidDevice {
-	uuid: string
-	userUuid: string
 	hwid: string
-	userAgent?: string
+	userUuid: string
+	platform?: string | null
+	osVersion?: string | null
+	deviceModel?: string | null
+	userAgent?: string | null
 	createdAt: string
-	lastUsedAt?: string
+	updatedAt: string
 }
 
 export interface HwidDevicesResponse {
+	total: number
 	devices: HwidDevice[]
 }

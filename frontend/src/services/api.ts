@@ -87,14 +87,18 @@ export const usersApi = {
 // Devices API
 export const devicesApi = {
 	getUserDevices: async (userUuid: string): Promise<HwidDevice[]> => {
-		const { data } = await api.get<HwidDevicesResponse>('/devices', {
-			params: { userUuid },
-		})
+		const { data } = await api.get<HwidDevicesResponse>(`/devices/${userUuid}`)
 		return data.devices
 	},
 
-	deleteDevice: async (deviceUuid: string): Promise<void> => {
-		await api.delete(`/devices/${deviceUuid}`)
+	deleteDevice: async (userUuid: string, deviceHwid: string): Promise<void> => {
+		// DELETE /api/devices with body containing userUuid and hwid
+		await api.delete('/devices', {
+			data: {
+				userUuid,
+				hwid: deviceHwid,
+			},
+		})
 	},
 }
 

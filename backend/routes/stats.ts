@@ -30,10 +30,14 @@ router.get('/', verifyAdmin, async (req: Request, res: Response) => {
         const totalUsers = usersData.totalUsers || 0;
         const totalTrafficStr = usersData.totalTrafficBytes || '0';
         
-        // Convert traffic to number
+        // Convert traffic to number with validation
         let totalTraffic = 0;
         try {
-          totalTraffic = parseInt(totalTrafficStr.toString());
+          const parsed = parseInt(totalTrafficStr.toString(), 10);
+          // Check if parsed is valid number
+          if (!isNaN(parsed) && isFinite(parsed)) {
+            totalTraffic = parsed;
+          }
         } catch (e) {
           totalTraffic = 0;
         }
@@ -53,13 +57,21 @@ router.get('/', verifyAdmin, async (req: Request, res: Response) => {
         const usersData = await remnaClient.getUsers({ limit: 1000 });
         const users = usersData.users || [];
         
+        // Calculate traffic from userTraffic object (new API format) or flat structure (old format)
+        const getTrafficBytes = (u: any) => {
+          if (u.userTraffic?.usedTrafficBytes != null) {
+            return u.userTraffic.usedTrafficBytes;
+          }
+          return u.usedTrafficBytes || 0;
+        };
+        
         usageStats = {
           total_users: users.length,
           active_users: users.filter(u => u.status === 'ACTIVE').length,
           disabled_users: users.filter(u => u.status === 'INACTIVE').length,
           limited_users: 0,
           expired_users: users.filter(u => u.status === 'EXPIRED').length,
-          total_traffic: users.reduce((sum, u) => sum + (u.usedTrafficBytes || 0), 0)
+          total_traffic: users.reduce((sum, u) => sum + getTrafficBytes(u), 0)
         };
       }
     } else {
@@ -67,13 +79,21 @@ router.get('/', verifyAdmin, async (req: Request, res: Response) => {
       const usersData = await remnaClient.getUsers({ limit: 1000 });
       const users = usersData.users || [];
       
+      // Calculate traffic from userTraffic object (new API format) or flat structure (old format)
+      const getTrafficBytes = (u: any) => {
+        if (u.userTraffic?.usedTrafficBytes != null) {
+          return u.userTraffic.usedTrafficBytes;
+        }
+        return u.usedTrafficBytes || 0;
+      };
+      
       usageStats = {
         total_users: users.length,
         active_users: users.filter(u => u.status === 'ACTIVE').length,
         disabled_users: users.filter(u => u.status === 'INACTIVE').length,
         limited_users: 0,
         expired_users: users.filter(u => u.status === 'EXPIRED').length,
-        total_traffic: users.reduce((sum, u) => sum + (u.usedTrafficBytes || 0), 0)
+        total_traffic: users.reduce((sum, u) => sum + getTrafficBytes(u), 0)
       };
     }
     

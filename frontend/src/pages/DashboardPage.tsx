@@ -209,7 +209,7 @@ export function DashboardPage() {
 					/>
 					<CompactStatCard
 						title='Общий трафик'
-						value={formatBytes(stats.usage.total_traffic)}
+						value={formatBytes(stats.usage?.total_traffic ?? 0)}
 						icon={<IconChartBar size={16} />}
 						color='#51cf66'
 					/>
